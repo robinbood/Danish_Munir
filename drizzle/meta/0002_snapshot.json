@@ -1,0 +1,554 @@
+{
+  "id": "23dee91d-6498-4a10-a6ff-656e226c1dd8",
+  "prevId": "1b197763-b1e3-47bf-a787-0565571ae876",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.chat_messages": {
+      "name": "chat_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question": {
+          "name": "question",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answer": {
+          "name": "answer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokens_used": {
+          "name": "tokens_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "quota_kind": {
+          "name": "quota_kind",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quota_limit": {
+          "name": "quota_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quota_subscription_id": {
+          "name": "quota_subscription_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quota_period": {
+          "name": "quota_period",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "chat_messages_user_created_idx": {
+          "name": "chat_messages_user_created_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chat_messages_tokens_nonnegative": {
+          "name": "chat_messages_tokens_nonnegative",
+          "value": "\"chat_messages\".\"tokens_used\" >= 0"
+        },
+        "chat_messages_quota_kind_valid": {
+          "name": "chat_messages_quota_kind_valid",
+          "value": "\"chat_messages\".\"quota_kind\" in ('free', 'bundle')"
+        },
+        "chat_messages_quota_limit_nonnegative": {
+          "name": "chat_messages_quota_limit_nonnegative",
+          "value": "\"chat_messages\".\"quota_limit\" is null or \"chat_messages\".\"quota_limit\" >= 0"
+        },
+        "chat_messages_free_quota_valid": {
+          "name": "chat_messages_free_quota_valid",
+          "value": "\"chat_messages\".\"quota_kind\" <> 'free' or (\"chat_messages\".\"quota_limit\" = 3 and \"chat_messages\".\"quota_subscription_id\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.free_quota_usage": {
+      "name": "free_quota_usage",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "month_key": {
+          "name": "month_key",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "used_count": {
+          "name": "used_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "free_quota_usage_user_month_unique": {
+          "name": "free_quota_usage_user_month_unique",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "month_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "free_quota_usage_nonnegative": {
+          "name": "free_quota_usage_nonnegative",
+          "value": "\"free_quota_usage\".\"used_count\" >= 0"
+        },
+        "free_quota_usage_month_format": {
+          "name": "free_quota_usage_month_format",
+          "value": "\"free_quota_usage\".\"month_key\" ~ '^\\d{4}-(0[1-9]|1[0-2])$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.subscription_bundles": {
+      "name": "subscription_bundles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plan": {
+          "name": "plan",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "remaining_messages": {
+          "name": "remaining_messages",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subscription_reservations": {
+      "name": "subscription_reservations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "subscription_reservations_subscription_status_idx": {
+          "name": "subscription_reservations_subscription_status_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "subscription_reservations_subscription_id_subscriptions_id_fk": {
+          "name": "subscription_reservations_subscription_id_subscriptions_id_fk",
+          "tableFrom": "subscription_reservations",
+          "tableTo": "subscriptions",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "subscription_reservations_status_valid": {
+          "name": "subscription_reservations_status_valid",
+          "value": "\"subscription_reservations\".\"status\" in ('pending', 'confirmed', 'released')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.subscriptions": {
+      "name": "subscriptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plan": {
+          "name": "plan",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle": {
+          "name": "cycle",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quota_limit": {
+          "name": "quota_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quota_remaining": {
+          "name": "quota_remaining",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_amount_minor": {
+          "name": "price_amount_minor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_start": {
+          "name": "period_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_end": {
+          "name": "period_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "renewal_date": {
+          "name": "renewal_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auto_renew": {
+          "name": "auto_renew",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "subscriptions_user_status_period_idx": {
+          "name": "subscriptions_user_status_period_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "period_end",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscriptions_due_renewals_idx": {
+          "name": "subscriptions_due_renewals_idx",
+          "columns": [
+            {
+              "expression": "period_end",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"subscriptions\".\"status\" = 'active' and \"subscriptions\".\"auto_renew\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "subscriptions_plan_valid": {
+          "name": "subscriptions_plan_valid",
+          "value": "\"subscriptions\".\"plan\" in ('basic', 'pro', 'enterprise')"
+        },
+        "subscriptions_cycle_valid": {
+          "name": "subscriptions_cycle_valid",
+          "value": "\"subscriptions\".\"cycle\" in ('monthly', 'yearly')"
+        },
+        "subscriptions_status_valid": {
+          "name": "subscriptions_status_valid",
+          "value": "\"subscriptions\".\"status\" in ('active', 'cancelled', 'expired')"
+        },
+        "subscriptions_period_valid": {
+          "name": "subscriptions_period_valid",
+          "value": "\"subscriptions\".\"period_end\" > \"subscriptions\".\"period_start\""
+        },
+        "subscriptions_renewal_matches_period_end": {
+          "name": "subscriptions_renewal_matches_period_end",
+          "value": "\"subscriptions\".\"renewal_date\" = \"subscriptions\".\"period_end\""
+        },
+        "subscriptions_price_nonnegative": {
+          "name": "subscriptions_price_nonnegative",
+          "value": "\"subscriptions\".\"price_amount_minor\" >= 0"
+        },
+        "subscriptions_quota_valid": {
+          "name": "subscriptions_quota_valid",
+          "value": "(\n    (\"subscriptions\".\"plan\" = 'enterprise' and \"subscriptions\".\"quota_limit\" is null and \"subscriptions\".\"quota_remaining\" is null)\n    or (\"subscriptions\".\"plan\" = 'basic' and \"subscriptions\".\"quota_limit\" = 10 and \"subscriptions\".\"quota_remaining\" between 0 and 10)\n    or (\"subscriptions\".\"plan\" = 'pro' and \"subscriptions\".\"quota_limit\" = 100 and \"subscriptions\".\"quota_remaining\" between 0 and 100)\n  )"
+        },
+        "subscriptions_terminal_no_renewal": {
+          "name": "subscriptions_terminal_no_renewal",
+          "value": "\"subscriptions\".\"status\" = 'active' or \"subscriptions\".\"auto_renew\" = false"
+        },
+        "subscriptions_cancelled_at_valid": {
+          "name": "subscriptions_cancelled_at_valid",
+          "value": "(\"subscriptions\".\"status\" = 'cancelled') = (\"subscriptions\".\"cancelled_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

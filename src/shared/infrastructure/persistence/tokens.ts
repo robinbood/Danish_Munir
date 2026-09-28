@@ -1,0 +1,6 @@
+export const DRIZZLE = Symbol('DrizzleDatabase');
+
+export const DATABASE_URL = 'DATABASE_URL';
+export const PAYMENT_FAILURE_RATE = 'PAYMENT_FAILURE_RATE';
+export const RENEWAL_SCAN_INTERVAL_MS = 'RENEWAL_SCAN_INTERVAL_MS';
+export const AI_RESPONSE_LATENCY_MS = 'AI_RESPONSE_LATENCY_MS';

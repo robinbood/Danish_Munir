@@ -1,0 +1,1 @@
+ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_paid_bundle_attributed" CHECK ("chat_messages"."quota_kind" <> 'bundle' or "chat_messages"."quota_subscription_id" is not null);
